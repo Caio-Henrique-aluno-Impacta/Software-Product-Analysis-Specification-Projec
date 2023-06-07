@@ -1,7 +1,6 @@
-from PyQt5 import uic,QtWidgets
+from PyQt5 import uic, QtWidgets
 import mysql.connector
 from reportlab.pdfgen import canvas
-
 
 n_id = 0
 
@@ -13,6 +12,63 @@ banco = mysql.connector.connect(
 )
 
 
+def preencher_formulario():
+    linha1 = formulario.lineEdit.text()
+    linha2 = formulario.lineEdit_2.text()
+    linha3 = formulario.lineEdit_3.text()
+
+    categoria = ""
+
+    if formulario.radioButton.isChecked():
+        print("Categoria do produto: Eletronicos")
+        categoria = "Eletronicos"
+    elif formulario.radioButton_2.isChecked():
+        print("Categoria do produto: Alimentos")
+        categoria = "Alimentos"
+    elif formulario.radioButton_3.isChecked():
+        print("Categoria do produto: Brinquedos")
+        categoria = "Brinquedos"
+    else:
+        print("ERRO - Não selecionou categoria")
+
+    print("Referencial ID ", linha1)
+    print("Nome ", linha2)
+    print("Valor ", linha3)
+
+    cursor = banco.cursor()
+    comando_SQL = "INSERT INTO produtos (codigo, descricao, preco, categoria) VALUES (%s, %s,%s,%s)"
+    dados = (str(linha1), str(linha2), str(linha3), categoria)
+    cursor.execute(comando_SQL, dados)
+    banco.commit()
+    formulario.lineEdit.setText("")
+    formulario.lineEdit_2.setText("")
+    formulario.lineEdit_3.setText("")
+
+
+def chamar_segunda_tela():
+    segunda_tela.show()
+    cursor = banco.cursor()
+    comando_SQL = "SELECT * FROM produtos"
+    cursor.execute(comando_SQL)
+    dados_lidos = cursor.fetchall()
+
+    segunda_tela.tableWidget.setRowCount(len(dados_lidos))
+    segunda_tela.tableWidget.setColumnCount(5)
+
+    for i in range(0, len(dados_lidos)):
+        for j in range(0, 5):
+            segunda_tela.tableWidget.setItem(i, j, QtWidgets.QTableWidgetItem(str(dados_lidos[i][j])))
+
+def chamar_terceira_tela():
+    terceira_telas.show()
+    cursor = banco.cursor()
+    comando_MYSQL = "SELECT SUM(preco) AS total FROM produtos;"
+    cursor.execute(comando_MYSQL)
+    for t in cursor.fetchall():
+        total = t
+
+        terceira_telas.label.setText(f'{total[0]:>7.2f}')
+        cursor.close()
 
 def editar_dados():
     global n_id
@@ -34,9 +90,9 @@ def editar_dados():
     tela_editar.lineEdit_5.setText(str(produto[0][4]))
     n_id = valor_id
 
+
 def salvar_valor_editado():
     global n_id
-
 
     codigo = tela_editar.lineEdit_2.text()
     descricao = tela_editar.lineEdit_3.text()
@@ -44,12 +100,15 @@ def salvar_valor_editado():
     categoria = tela_editar.lineEdit_5.text()
 
     cursor = banco.cursor()
-    cursor.execute("UPDATE produtos SET codigo = '{}', descricao = '{}', preco = '{}', categoria ='{}' WHERE id = {}".format(codigo,descricao,preco,categoria,n_id))
+    cursor.execute(
+        "UPDATE produtos SET codigo = '{}', descricao = '{}', preco = '{}', categoria ='{}' WHERE id = {}".format(
+            codigo, descricao, preco, categoria, n_id))
     banco.commit()
 
     tela_editar.close()
     segunda_tela.close()
-    chama_segunda_tela()
+    chamar_segunda_tela()
+
 
 def excluir_dados():
     linha = segunda_tela.tableWidget.currentRow()
@@ -59,7 +118,7 @@ def excluir_dados():
     cursor.execute("SELECT id FROM produtos")
     dados_lidos = cursor.fetchall()
     valor_id = dados_lidos[linha][0]
-    cursor.execute("DELETE FROM produtos WHERE id="+ str(valor_id))
+    cursor.execute("DELETE FROM produtos WHERE id=" + str(valor_id))
     print(dados_lidos)
 
 
@@ -93,65 +152,19 @@ def gerar_pdf():
     print("PDF FOI GERADO COM SUCESSO!")
 
 
-def funcao_principal():
-    linha1 = formulario.lineEdit.text()
-    linha2 = formulario.lineEdit_2.text()
-    linha3 = formulario.lineEdit_3.text()
-
-    categoria = ""
-
-    if formulario.radioButton.isChecked() :
-        print("Categoria do produto: Eletronicos")
-        categoria = "Eletronicos"
-    elif formulario.radioButton_2.isChecked() :
-        print("Categoria do produto: Alimentos")
-        categoria = "Alimentos"
-    elif formulario.radioButton_3.isChecked() :
-        print("Categoria do produto: Brinquedos")
-        categoria = "Brinquedos"
-    else :
-        print ("Não selecionou categoria")
-
-    print("Referencial ID ",linha1)
-    print("Nome ",linha2)
-    print("Valor ",linha3)
-    
-    cursor = banco.cursor()
-    comando_SQL = "INSERT INTO produtos (codigo, descricao, preco, categoria) VALUES (%s, %s,%s,%s)"
-    dados = (str(linha1),str(linha2),str(linha3),categoria)
-    cursor.execute(comando_SQL,dados)
-    banco.commit()
-    formulario.lineEdit.setText("")
-    formulario.lineEdit_2.setText("")
-    formulario.lineEdit_3.setText("")
-
-def chama_segunda_tela():
-    segunda_tela.show()
-    cursor = banco.cursor()
-    comando_SQL = "SELECT * FROM produtos"
-    cursor.execute(comando_SQL)
-    dados_lidos = cursor.fetchall()
-
-    segunda_tela.tableWidget.setRowCount(len(dados_lidos))
-    segunda_tela.tableWidget.setColumnCount(5)
-
-    for i in range(0, len(dados_lidos)):
-        for j in range(0, 5):
-            segunda_tela.tableWidget.setItem(i,j,QtWidgets.QTableWidgetItem(str(dados_lidos[i][j])))
 
 
-app=QtWidgets.QApplication([])
-formulario=uic.loadUi("formulario.ui")
-segunda_tela=uic.loadUi("lista_de_dados.ui")
-tela_editar=uic.loadUi("menu_editar.ui")
-formulario.pushButton.clicked.connect(funcao_principal)
-formulario.pushButton_2.clicked.connect(chama_segunda_tela)
+app = QtWidgets.QApplication([])
+formulario = uic.loadUi("formulario.ui")
+segunda_tela = uic.loadUi("lista_de_dados.ui")
+tela_editar = uic.loadUi("menu_editar.ui")
+terceira_telas = uic.loadUi("terceira_tela.ui")
+formulario.pushButton.clicked.connect(preencher_formulario)
+formulario.pushButton_2.clicked.connect(chamar_segunda_tela)
 segunda_tela.pushButton.clicked.connect(gerar_pdf)
 segunda_tela.pushButton_2.clicked.connect(excluir_dados)
 segunda_tela.pushButton_3.clicked.connect(editar_dados)
+segunda_tela.pushButton_4.clicked.connect(chamar_terceira_tela)
 tela_editar.pushButton.clicked.connect(salvar_valor_editado)
-
-
-
 formulario.show()
 app.exec()
